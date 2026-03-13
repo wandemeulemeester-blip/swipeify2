@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swipeify</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #1DB954;
+  --dark: #080808;
+  --card: #141414;
+  --card2: #1c1c1c;
+  --text: #f2f2f2;
+  --muted: #555;
+  --remove: #ff3b55;
+  --keep: #1DB954;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+header {
+  width: 100%;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.logo { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.03em; }
+.logo em { color: var(--green); font-style: normal; }
+.progress-wrap { flex: 1; max-width: 240px; margin: 0 20px; height: 3px; background: #222; border-radius: 99px; overflow: hidden; display: none; }
+.progress-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width .4s ease; }
+.counter { font-size: 0.75rem; color: var(--muted); min-width: 48px; text-align: right; }
+.screen { display: none; flex-direction: column; align-items: center; flex: 1; width: 100%; }
+.screen.active { display: flex; }
+#setup { justify-content: center; gap: 20px; padding: 32px 20px; text-align: center; }
+#setup h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 8vw, 3rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.04em; }
+#setup h1 em { color: var(--green); font-style: normal; display: block; }
+#setup > p { color: var(--muted); font-size: 0.9rem; max-width: 340px; line-height: 1.6; }
+.card-box { background: var(--card); border: 1px solid #222; border-radius: 18px; padding: 20px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.card-box h3 { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.badge { background: var(--green); color: #000; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0; }
+.card-box p { font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
+.card-box a { color: var(--green); text-decoration: none; }
+input[type="text"] { width: 100%; background: #0e0e0e; border: 1px solid #2a2a2a; border-radius: 10px; padding: 13px 16px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; outline: none; transition: border-color .2s; }
+input:focus { border-color: var(--green); }
+.uri-box { display: flex; align-items: center; gap: 8px; }
+.uri-val { flex: 1; background: #0a0a0a; border: 1px solid #222; border-radius: 10px; padding: 11px 14px; font-size: 0.75rem; color: var(--green); word-break: break-all; font-family: monospace; }
+.btn { background: var(--green); color: #000; border: none; border-radius: 12px; padding: 15px 24px; font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; width: 100%; transition: transform .15s, opacity .2s; letter-spacing: -0.01em; }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid #282828; font-family: 'DM Sans', sans-serif; font-weight: 400; }
+.btn-red { background: var(--remove); color: #fff; }
+.btn-sm { padding: 10px 16px; font-size: 0.8rem; width: auto; border-radius: 8px; }
+#picker { gap: 12px; padding: 12px 20px 32px; overflow-y: auto; max-width: 480px; }
+#picker h2 { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800; align-self: flex-start; margin-bottom: 4px; }
+.pl-item { background: var(--card); border: 1px solid #1e1e1e; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; width: 100%; transition: border-color .2s, transform .15s; }
+.pl-item:active { transform: scale(0.98); border-color: var(--green); }
+.pl-item img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: #222; flex-shrink: 0; }
+.pl-info { flex: 1; }
+.pl-info strong { display: block; font-size: 0.9rem; }
+.pl-info span { font-size: 0.78rem; color: var(--muted); }
+.pl-arr { color: var(--muted); font-size: 1.1rem; }
+#swiper { justify-content: center; align-items: center; gap: 20px; padding: 0 20px 28px; }
+.stack { position: relative; width: min(340px, 88vw); height: 400px; flex-shrink: 0; display: block; }
+.t-card { position: absolute; inset: 0; background: var(--card); border-radius: 22px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.7); display: flex; flex-direction: column; cursor: grab; user-select: none; will-change: transform; }
+.t-card:active { cursor: grabbing; }
+.t-card.behind { transform: scale(0.93) translateY(14px); z-index: 0; pointer-events: none; }
+.t-card.active { z-index: 2; }
+.t-art { width: 100%; height: 240px; object-fit: cover; background: #1a1a1a; display: block; flex-shrink: 0; }
+.t-info { padding: 18px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.t-name { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-artist { color: var(--muted); font-size: 0.82rem; }
+.t-album { color: #333; font-size: 0.73rem; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slabel { position: absolute; top: 20px; padding: 6px 14px; border-radius: 7px; font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; letter-spacing: .04em; opacity: 0; pointer-events: none; z-index: 5; border: 2.5px solid; }
+.sl-keep { left: 16px; color: var(--keep); border-color: var(--keep); transform: rotate(-10deg); }
+.sl-remove { right: 16px; color: var(--remove); border-color: var(--remove); transform: rotate(10deg); }
+.actions { display: flex; gap: 18px; align-items: center; }
+.act-btn { border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+.act-btn:active { transform: scale(0.9); }
+.a-remove { width: 60px; height: 60px; background: #1a1a1a; color: var(--remove); font-size: 1.4rem; }
+.a-keep { width: 60px; height: 60px; background: #1a1a1a; color: var(--keep); font-size: 1.4rem; }
+.a-play { width: 48px; height: 48px; background: var(--green); color: #000; font-size: 1rem; }
+.audio-bars { position: absolute; bottom: 76px; left: 50%; transform: translateX(-50%); display: flex; gap: 3px; align-items: flex-end; height: 18px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.audio-bars.on { opacity: 1; }
+.ab { width: 3px; background: var(--green); border-radius: 2px; animation: ab .8s ease-in-out infinite; }
+.ab:nth-child(1){animation-delay:0s}.ab:nth-child(2){animation-delay:.15s}.ab:nth-child(3){animation-delay:.3s}.ab:nth-child(4){animation-delay:.45s}
+@keyframes ab { 0%,100%{height:3px} 50%{height:16px} }
+.hint { font-size: 0.72rem; color: var(--muted); text-align: center; }
+#results { gap: 18px; padding: 24px 20px 40px; max-width: 480px; overflow-y: auto; }
+#results h2 { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; text-align: center; }
+.stats { display: flex; gap: 12px; width: 100%; }
+.stat { flex: 1; background: var(--card); border-radius: 14px; padding: 18px; text-align: center; }
+.stat .n { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; line-height: 1; }
+.stat .l { font-size: 0.7rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+.stat.k .n { color: var(--keep); }
+.stat.r .n { color: var(--remove); }
+.rlist { width: 100%; display: flex; flex-direction: column; gap: 7px; }
+.rlist h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 2px; }
+.rrow { background: var(--card); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+.rrow img { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: #222; flex-shrink: 0; }
+.rrow .rn { font-size: 0.85rem; font-weight: 500; }
+.rrow .ra { font-size: 0.75rem; color: var(--muted); }
+.res-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.spin { width: 28px; height: 28px; border: 3px solid #1e1e1e; border-top-color: var(--green); border-radius: 50%; animation: sp .7s linear infinite; margin: 40px auto; }
+@keyframes sp { to { transform: rotate(360deg); } }
+#toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px); background: #1e1e1e; border: 1px solid #2a2a2a; color: var(--text); border-radius: 10px; padding: 11px 22px; font-size: 0.82rem; transition: transform .3s ease; z-index: 999; pointer-events: none; }
+#toast.show { transform: translateX(-50%) translateY(0); }
+.fly-l { animation: fl .33s ease-in forwards; }
+.fly-r { animation: fr .33s ease-in forwards; }
+@keyframes fl { to { transform: translateX(-120%) rotate(-22deg); opacity: 0; } }
+@keyframes fr { to { transform: translateX(120%) rotate(22deg); opacity: 0; } }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Swipe<em>ify</em></div>
+  <div class="progress-wrap" id="pwrap"><div class="progress-fill" id="pfill" style="width:0%"></div></div>
+  <div class="counter" id="counter"></div>
+</header>
+
+<div class="screen active" id="setup">
+  <h1>Ruim je<br>playlist op<em>met een swipe</em></h1>
+  <p>Swipe rechts om nummers te bewaren, links om ze te verwijderen.</p>
+
+  <div class="card-box">
+    <h3><span class="badge">1</span> Spotify Developer App</h3>
+    <p>Ga naar <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a>, maak een app aan en voeg de Redirect URI uit stap 2 toe.</p>
+    <input type="text" id="client-id" placeholder="Plak je Client ID hier">
+  </div>
+
+  <div class="card-box">
+    <h3><span class="badge">2</span> Voeg deze Redirect URI toe</h3>
+    <p>Kopieer dit en plak het exact in je Spotify Dashboard onder <strong>Redirect URIs</strong>.</p>
+    <div class="uri-box">
+      <input type="text" id="uri-display" class="uri-val" style="cursor:text;" placeholder="https://jouw-site.netlify.app" oninput="saveUri(this.value)">
+      <button class="btn btn-sm" onclick="copyUri()">Kopieer</button>
+    </div>
+  </div>
+
+  <button class="btn" onclick="startLogin()">Verbinden met Spotify</button>
+  <p style="font-size:0.72rem;color:var(--muted)">Geen wachtwoord wordt opgeslagen.</p>
+</div>
+
+<div class="screen" id="picker">
+  <h2>Kies een playlist</h2>
+  <div id="pl-list" style="width:100%;display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<div class="screen" id="swiper">
+  <div class="stack" id="stack">
+    <div class="audio-bars" id="abars">
+      <div class="ab"></div><div class="ab"></div><div class="ab"></div><div class="ab"></div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="act-btn a-remove" onclick="doSwipe('left')">✕</button>
+    <button class="act-btn a-play" id="playbtn" onclick="togglePlay()">▶</button>
+    <button class="act-btn a-keep" onclick="doSwipe('right')">♥</button>
+  </div>
+  <p class="hint">← verwijderen &nbsp;·&nbsp; → behouden</p>
+</div>
+
+<div class="screen" id="results">
+  <h2>🎉 Klaar!</h2>
+  <div class="stats">
+    <div class="stat k"><div class="n" id="kcount">0</div><div class="l">Bewaard</div></div>
+    <div class="stat r"><div class="n" id="rcount">0</div><div class="l">Verwijderen</div></div>
+  </div>
+  <div class="rlist" id="rlist"></div>
+  <div class="res-btns">
+    <button class="btn btn-red" id="applybtn" onclick="applyRemovals()">Verwijder uit playlist</button>
+    <button class="btn btn-ghost" onclick="goBack()">Andere playlist</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let token = null;
+let tracks = [], idx = 0, toRemove = [], toKeep = [], playlistId = null;
+let aud = null, playing = false;
+
+// ── PKCE ───────────────────────────────────────────────────────────────────
+function randStr(len) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+async function sha256(plain) {
+  const enc = new TextEncoder().encode(plain);
+  const hash = await crypto.subtle.digest('SHA-256', enc);
+  return btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+// ── Redirect URI ───────────────────────────────────────────────────────────
+function getRedirectUri() {
+  const input = document.getElementById('uri-display');
+  const val = input ? input.value.trim().replace(/\/+$/, '') : '';
+  if (val) return val;
+  return window.location.origin + window.location.pathname.replace(/\/+$/, '');
+}
+function saveUri(val) {
+  localStorage.setItem('sp_redirect', val.trim().replace(/\/+$/, ''));
+}
+function copyUri() {
+  navigator.clipboard.writeText(getRedirectUri()).then(() => toast('✓ Gekopieerd!'));
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+async function startLogin() {
+  const clientId = document.getElementById('client-id').value.trim();
+  if (!clientId) { toast('Voer je Client ID in'); return; }
+  localStorage.setItem('sp_cid', clientId);
+  const verifier = randStr(64);
+  const challenge = await sha256(verifier);
+  localStorage.setItem('sp_verifier', verifier);
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: getRedirectUri(),
+    scope: 'playlist-read-private playlist-modify-public playlist-modify-private',
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+    show_dialog: 'true'
+  });
+  window.location.href = 'https://accounts.spotify.com/authorize?' + params;
+}
+
+async function handleCallback(code) {
+  const clientId = localStorage.getItem('sp_cid');
+  const verifier = localStorage.getItem('sp_verifier');
+  if (!clientId || !verifier) { show('setup'); return; }
+  try {
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: getRedirectUri(),
+        client_id: clientId,
+        code_verifier: verifier
+      })
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      token = data.access_token;
+      localStorage.setItem('sp_token', token);
+      localStorage.setItem('sp_expiry', Date.now() + data.expires_in * 1000);
+      if (data.refresh_token) localStorage.setItem('sp_refresh', data.refresh_token);
+      loadPlaylists();
+    } else {
+      toast('Login mislukt: ' + (data.error_description || data.error || 'onbekend'));
+      show('setup');
+    }
+  } catch(e) {
+    toast('Login fout: ' + e.message);
+    show('setup');
+  }
+}
+
+async function refreshToken() {
+  const clientId = localStorage.getItem('sp_cid');
+  const rt = localStorage.getItem('sp_refresh');
+  if (!clientId || !rt) return false;
+  try {
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: rt, client_id: clientId })
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      token = data.access_token;
+      localStorage.setItem('sp_token', token);
+      localStorage.setItem('sp_expiry', Date.now() + data.expires_in * 1000);
+      if (data.refresh_token) localStorage.setItem('sp_refresh', data.refresh_token);
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(endpoint, opts = {}) {
+  const expiry = parseInt(localStorage.getItem('sp_expiry') || '0');
+  if (Date.now() > expiry - 60000) {
+    const ok = await refreshToken();
+    if (!ok) { show('setup'); toast('Sessie verlopen, log opnieuw in'); return null; }
+  }
+  const res = await fetch('https://api.spotify.com/v1' + endpoint, {
+    ...opts,
+    headers: {
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+  if (res.status === 204) return {};
+  if (res.status === 401) {
+    const ok = await refreshToken();
+    if (ok) return api(endpoint, opts);
+    show('setup'); toast('Sessie verlopen'); return null;
+  }
+  if (!res.ok) {
+    let msg = '';
+    try { const b = await res.json(); msg = b.error?.message || ''; } catch(e) {}
+    toast('API fout ' + res.status + (msg ? ': ' + msg : ''));
+    return null;
+  }
+  return res.json();
+}
+
+// ── Playlists ──────────────────────────────────────────────────────────────
+async function loadPlaylists() {
+  show('picker');
+  const list = document.getElementById('pl-list');
+  list.innerHTML = '<div class="spin"></div>';
+  const data = await api('/me/playlists?limit=50');
+  if (!data) return;
+  if (!data.items || data.items.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);padding:20px;text-align:center">Geen playlists gevonden.</p>';
+    return;
+  }
+  list.innerHTML = '';
+  data.items.forEach(pl => {
+    if (!pl) return;
+    const img = pl.images && pl.images[0] ? pl.images[0].url : '';
+    const d = document.createElement('div');
+    d.className = 'pl-item';
+    const imgEl = img ? '<img src="' + img + '" alt="">' : '<div style="width:48px;height:48px;border-radius:8px;background:#222;flex-shrink:0"></div>';
+    const total = (pl.items ? pl.items.total : null) || (pl.tracks ? pl.tracks.total : '?'); d.innerHTML = imgEl + '<div class="pl-info"><strong>' + esc(pl.name) + '</strong><span>' + total + ' nummers</span></div><span class="pl-arr">›</span>';
+    d.onclick = () => loadPlaylist(pl.id);
+    list.appendChild(d);
+  });
+}
+
+// ── Load playlist tracks ───────────────────────────────────────────────────
+async function loadPlaylist(id) {
+  playlistId = id;
+  idx = 0; toRemove = []; toKeep = []; tracks = [];
+  show('swiper');
+  const stack = document.getElementById('stack');
+  while (stack.firstChild) stack.removeChild(stack.firstChild);
+  const spinDiv = document.createElement('div');
+  spinDiv.className = 'spin';
+  stack.appendChild(spinDiv);
+  document.getElementById('pwrap').style.display = 'flex';
+
+  let url = '/playlists/' + id + '/items?limit=50';
+  let forbidden = false;
+  while (url) {
+    const data = await api(url.replace('https://api.spotify.com/v1', ''));
+    if (!data) { forbidden = true; break; }
+    if (!data.items) break;
+    data.items.forEach(item => {
+      if (!item) return;
+      const t = item.track;
+      // Accept tracks only (not episodes/podcasts), and not null
+      if (t && t.id && t.type === 'track') tracks.push(t);
+    });
+    // Manually construct next URL to avoid Spotify's broken pagination
+    if (data.next) {
+      const offset = tracks.length;
+      url = '/playlists/' + id + '/items?limit=50&offset=' + offset;
+      if (offset >= (data.total || Infinity)) url = null;
+    } else {
+      url = null;
+    }
+  }
+
+  if (forbidden || tracks.length === 0) {
+    const msg = forbidden
+      ? 'Geen toegang — alleen jouw eigen playlists werken'
+      : 'Geen nummers gevonden in deze playlist';
+    toast(msg);
+    document.getElementById('pwrap').style.display = 'none';
+    loadPlaylists();
+    return;
+  }
+  renderCards();
+  updateProgress();
+}
+
+// ── Render cards ───────────────────────────────────────────────────────────
+function makeCard(t, i, isActive) {
+  const div = document.createElement('div');
+  div.className = 't-card ' + (isActive ? 'active' : 'behind');
+  div.id = 'c' + i;
+
+  const keepLabel = document.createElement('div');
+  keepLabel.className = 'slabel sl-keep';
+  keepLabel.id = 'lk' + i;
+  keepLabel.textContent = 'BEWAREN';
+  div.appendChild(keepLabel);
+
+  const removeLabel = document.createElement('div');
+  removeLabel.className = 'slabel sl-remove';
+  removeLabel.id = 'lr' + i;
+  removeLabel.textContent = 'VERWIJDEREN';
+  div.appendChild(removeLabel);
+
+  const art = t.album && t.album.images && t.album.images[0] ? t.album.images[0].url : '';
+  if (art) {
+    const img = document.createElement('img');
+    img.className = 't-art';
+    img.src = art;
+    img.alt = '';
+    div.appendChild(img);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 't-art';
+    div.appendChild(placeholder);
+  }
+
+  const info = document.createElement('div');
+  info.className = 't-info';
+  info.innerHTML = '<div class="t-name">' + esc(t.name || '') + '</div>' +
+    '<div class="t-artist">' + esc(t.artists ? t.artists.map(a => a.name).join(', ') : '') + '</div>' +
+    '<div class="t-album">' + esc(t.album ? t.album.name : '') + '</div>';
+  div.appendChild(info);
+
+  return div;
+}
+
+function renderCards() {
+  const stack = document.getElementById('stack');
+
+  // Remove all children
+  while (stack.firstChild) stack.removeChild(stack.firstChild);
+
+  // Re-add audio bars
+  const bars = document.createElement('div');
+  bars.className = 'audio-bars';
+  bars.id = 'abars';
+  if (playing) bars.classList.add('on');
+  bars.innerHTML = '<div class="ab"></div><div class="ab"></div><div class="ab"></div><div class="ab"></div>';
+  stack.appendChild(bars);
+
+  if (idx >= tracks.length) { showResults(); return; }
+
+  // Add behind card (next) first, then active card on top
+  if (idx + 1 < tracks.length) {
+    const behind = makeCard(tracks[idx + 1], idx + 1, false);
+    stack.appendChild(behind);
+  }
+
+  const active = makeCard(tracks[idx], idx, true);
+  stack.appendChild(active);
+  setupDrag(active, idx);
+}
+
+// ── Drag ───────────────────────────────────────────────────────────────────
+function setupDrag(card, i) {
+  let sx = 0, cx = 0, drag = false;
+
+  function down(e) {
+    drag = true;
+    sx = e.touches ? e.touches[0].clientX : e.clientX;
+    card.style.transition = 'none';
+  }
+  function move(e) {
+    if (!drag) return;
+    cx = (e.touches ? e.touches[0].clientX : e.clientX) - sx;
+    card.style.transform = 'translateX(' + cx + 'px) rotate(' + (cx * 0.07) + 'deg)';
+    const p = Math.min(Math.abs(cx) / 100, 1);
+    const lk = document.getElementById('lk' + i);
+    const lr = document.getElementById('lr' + i);
+    if (lk) lk.style.opacity = cx > 15 ? p : 0;
+    if (lr) lr.style.opacity = cx < -15 ? p : 0;
+  }
+  function up() {
+    if (!drag) return;
+    drag = false;
+    card.style.transition = 'transform .3s ease';
+    if (cx > 90) doSwipe('right');
+    else if (cx < -90) doSwipe('left');
+    else {
+      card.style.transform = '';
+      const lk = document.getElementById('lk' + i);
+      const lr = document.getElementById('lr' + i);
+      if (lk) lk.style.opacity = 0;
+      if (lr) lr.style.opacity = 0;
+    }
+    cx = 0;
+  }
+
+  card.addEventListener('mousedown', down);
+  card.addEventListener('touchstart', down, { passive: true });
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, { passive: true });
+  document.addEventListener('mouseup', up);
+  document.addEventListener('touchend', up);
+}
+
+function doSwipe(dir) {
+  if (idx >= tracks.length) return;
+  stopAudio();
+  const card = document.getElementById('c' + idx);
+  if (!card) return;
+  if (dir === 'left') toRemove.push(tracks[idx]);
+  else toKeep.push(tracks[idx]);
+  card.classList.add(dir === 'left' ? 'fly-l' : 'fly-r');
+  card.addEventListener('animationend', () => {
+    idx++;
+    renderCards();
+    updateProgress();
+  }, { once: true });
+}
+
+// ── Audio ──────────────────────────────────────────────────────────────────
+function togglePlay() { playing ? stopAudio() : playAudio(); }
+function playAudio() {
+  if (idx >= tracks.length) return;
+  const t = tracks[idx];
+  if (!t.preview_url) { toast('Geen preview beschikbaar'); return; }
+  stopAudio();
+  aud = new Audio(t.preview_url);
+  aud.volume = 0.7;
+  aud.play().then(() => {
+    playing = true;
+    const bars = document.getElementById('abars');
+    if (bars) bars.classList.add('on');
+    const btn = document.getElementById('playbtn');
+    if (btn) btn.textContent = '⏸';
+  }).catch(e => {
+    toast('Autoplay geblokkeerd — tik opnieuw op ▶');
+    aud = null;
+  });
+  playing = true;
+  const bars = document.getElementById('abars');
+  if (bars) bars.classList.add('on');
+  const btn = document.getElementById('playbtn');
+  if (btn) btn.textContent = '⏸';
+  aud.onended = stopAudio;
+}
+function stopAudio() {
+  if (aud) { aud.pause(); aud = null; }
+  playing = false;
+  const bars = document.getElementById('abars');
+  if (bars) bars.classList.remove('on');
+  const btn = document.getElementById('playbtn');
+  if (btn) btn.textContent = '▶';
+}
+
+// ── Progress ───────────────────────────────────────────────────────────────
+function updateProgress() {
+  const p = tracks.length ? (idx / tracks.length) * 100 : 0;
+  document.getElementById('pfill').style.width = p + '%';
+  document.getElementById('counter').textContent = tracks.length ? idx + '/' + tracks.length : '';
+}
+
+// ── Results ────────────────────────────────────────────────────────────────
+function showResults() {
+  show('results');
+  document.getElementById('pwrap').style.display = 'none';
+  document.getElementById('counter').textContent = '';
+  document.getElementById('kcount').textContent = toKeep.length;
+  document.getElementById('rcount').textContent = toRemove.length;
+  const list = document.getElementById('rlist');
+  if (toRemove.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:0.82rem">Niets te verwijderen!</p>';
+    document.getElementById('applybtn').disabled = true;
+    return;
+  }
+  list.innerHTML = '<h3>Te verwijderen (' + toRemove.length + ')</h3>';
+  toRemove.forEach(t => {
+    const r = document.createElement('div');
+    r.className = 'rrow';
+    const art = t.album && t.album.images && t.album.images[0] ? t.album.images[0].url : '';
+    const imgEl = art ? '<img src="' + art + '" alt="">' : '<div style="width:34px;height:34px;border-radius:6px;background:#222;flex-shrink:0"></div>';
+    r.innerHTML = imgEl + '<div><div class="rn">' + esc(t.name) + '</div><div class="ra">' + esc(t.artists ? t.artists.map(a => a.name).join(', ') : '') + '</div></div>';
+    list.appendChild(r);
+  });
+}
+
+async function applyRemovals() {
+  if (!playlistId || !toRemove.length) return;
+  const btn = document.getElementById('applybtn');
+  btn.disabled = true;
+  btn.textContent = 'Bezig...';
+  try {
+    for (let i = 0; i < toRemove.length; i += 100) {
+      const chunk = toRemove.slice(i, i + 100);
+      await api('/playlists/' + playlistId + '/items', {
+        method: 'DELETE',
+        body: JSON.stringify({ tracks: chunk.map(t => ({ uri: 'spotify:track:' + t.id })) })
+      });
+    }
+    toast('✓ ' + toRemove.length + ' nummer(s) verwijderd!');
+    btn.textContent = '✓ Klaar!';
+    toRemove = [];
+    document.getElementById('rcount').textContent = '0';
+    document.getElementById('rlist').innerHTML = '<p style="color:var(--muted);font-size:0.82rem">Verwijderd uit je playlist.</p>';
+  } catch(e) {
+    toast('Fout bij verwijderen');
+    btn.disabled = false;
+    btn.textContent = 'Verwijder uit playlist';
+  }
+}
+
+function goBack() {
+  stopAudio();
+  document.getElementById('pwrap').style.display = 'none';
+  loadPlaylists();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function esc(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── Keyboard ───────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (document.getElementById('swiper').classList.contains('active')) {
+    if (e.key === 'ArrowLeft') doSwipe('left');
+    if (e.key === 'ArrowRight') doSwipe('right');
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  }
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+(async function init() {
+  // Populate URI field
+  const uriEl = document.getElementById('uri-display');
+  const savedUri = localStorage.getItem('sp_redirect');
+  if (savedUri) uriEl.value = savedUri;
+  else uriEl.value = window.location.origin + window.location.pathname.replace(/\/+$/, '');
+
+  // Populate client ID
+  const savedCid = localStorage.getItem('sp_cid');
+  if (savedCid) document.getElementById('client-id').value = savedCid;
+
+  // Handle OAuth callback
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    window.history.replaceState({}, '', window.location.pathname);
+    await handleCallback(code);
+    return;
+  }
+
+  // Try existing token
+  const savedToken = localStorage.getItem('sp_token');
+  const expiry = parseInt(localStorage.getItem('sp_expiry') || '0');
+  if (savedToken && Date.now() < expiry - 60000) {
+    token = savedToken;
+    loadPlaylists();
+    return;
+  }
+
+  // Try refresh
+  if (localStorage.getItem('sp_refresh')) {
+    const ok = await refreshToken();
+    if (ok) { loadPlaylists(); return; }
+  }
+
+  show('setup');
+})();
+</script>
+</body>
+</html>
